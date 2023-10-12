@@ -424,3 +424,30 @@ extract 3 ["a"; "b"; "c"; "d"];;
 
 
 List.length (extract 2 ["a"; "b"; "c"; "d"; "e"; "f"; "g"]) = 21;;
+
+
+let rec group list n k =
+    let rec aux groups currpart discarded remgrouplen groupsleft l =
+        if groupsleft = 0 then groups
+        else
+            if remgrouplen = 0
+            then aux (currpart::groups) [] [] n (groupsleft-1) (l@discarded)
+            else
+                match l with
+                | [] -> []
+                | hd ::tl -> begin
+                    aux groups currpart (hd::discarded) remgrouplen groupsleft tl
+                end @ begin
+                    aux groups (hd::currpart) discarded (remgrouplen-1) groupsleft tl
+                end
+        (**| [] -> if i <= 0 then [i, groups] else []
+        | hd :: tl as l -> begin
+            if i <= 0
+            then aux ((currpart)::groups) [] [] n (l@discarded)
+            else begin
+                aux groups currpart (hd::discarded) i tl
+            end @ begin
+                aux groups (hd::currpart) discarded (i-1) tl
+            end
+        end*)
+    in aux [] [] [] n list

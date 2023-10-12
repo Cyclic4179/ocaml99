@@ -426,9 +426,10 @@ extract 3 ["a"; "b"; "c"; "d"];;
 List.length (extract 2 ["a"; "b"; "c"; "d"; "e"; "f"; "g"]) = 21;;
 
 
+(** n: amount items in groups, k: amount groups *)
 let rec group list n k =
     let rec aux groups currpart discarded remgrouplen groupsleft l =
-        if groupsleft = 0 then groups
+        if groupsleft = 0 then [groups]
         else
             if remgrouplen = 0
             then aux (currpart::groups) [] [] n (groupsleft-1) (l@discarded)

@@ -661,3 +661,37 @@ let goldbach_list n m =
         else aux ((i,goldbach i)::acc) (i+2)
     in let n_even = if n mod 2 = 0 then n else n + 1
     in aux [] n_even;;
+
+
+goldbach_list 9 20;;
+
+
+type bool_expr =
+    | Var of string
+    | Not of bool_expr
+    | And of bool_expr * bool_expr
+    | Or of bool_expr * bool_expr;;
+
+
+let lazy_or p1 p2 = match p1,p2 with
+    | lazy true, _ -> true
+    | lazy false, lazy x -> x;;
+
+
+let table2 var_a var_b exp =
+    let rec aux val_a val_b = function
+        | Var x ->
+            if x = var_a then val_a
+            else if x = var_b then val_b
+            else raise (Invalid_argument "unknown var in expression")
+        | Not e -> not (aux val_a val_b e)
+        | And (e1,e2) -> lazy_and (lazy (aux val_a val_b e1)) (lazy (aux val_a val_b e2))
+        | Or (e1,e2) -> lazy_or (lazy (aux val_a val_b e1)) (lazy (aux val_a val_b e2))
+    in begin
+        List.map
+        (fun (val_a,val_b) -> val_a,val_b,aux val_a val_b exp)
+        [true,true;true,false;false,true;false,false]
+    end;;
+
+
+table2 "a" "b" (And (Var "a", Or (Var "a", Var "b")));;

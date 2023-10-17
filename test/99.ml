@@ -427,6 +427,8 @@ List.length (extract 2 ["a"; "b"; "c"; "d"; "e"; "f"; "g"]) = 21;;
 
 
 (** n: amount items in groups, k: amount groups *)
+(** implementation -> (1..9) yields (1..) as well as (9..1), which is the same *)
+(** solution: first generate all distinct subgroups of length n, then pick k groups *)
 let rec group list n k =
     let rec aux groups currpart discarded remgrouplen groupsleft l =
         if groupsleft = 0 then [groups]
@@ -441,14 +443,153 @@ let rec group list n k =
                 end @ begin
                     aux groups (hd::currpart) discarded (remgrouplen-1) groupsleft tl
                 end
-        (**| [] -> if i <= 0 then [i, groups] else []
-        | hd :: tl as l -> begin
-            if i <= 0
-            then aux ((currpart)::groups) [] [] n (l@discarded)
-            else begin
-                aux groups currpart (hd::discarded) i tl
+    in aux [] [] [] n k list;;
+
+
+group [1;2;3;4;] 2 2;;
+
+
+let rec group list sizes =
+    let rec aux groups currpart discarded remgrouplen remsizes l =
+        if remgrouplen = 0
+        then
+            match remsizes with
+            | [] -> [List.rev (currpart::groups)]
+            | hd :: tl -> aux (currpart::groups) [] [] hd tl (l@discarded)
+        else
+            match l with
+            | [] -> []
+            | hd ::tl -> begin
+                aux groups currpart (hd::discarded) remgrouplen remsizes tl
             end @ begin
-                aux groups (hd::currpart) discarded (i-1) tl
+                aux groups (hd::currpart) discarded (remgrouplen-1) remsizes tl
             end
-        end*)
-    in aux [] [] [] n list
+    in match sizes with
+    | [] -> []
+    | hd :: tl -> aux [] [] [] hd tl list;;
+
+
+group ["a"; "b"; "c"; "d"] [2; 1];;
+
+
+let rec test = List.fold_left
+
+let hai = List.fold_left (fun x y -> let () = (Printf.printf "%d %d\n" x y) in y) 0 [2;4;6];;
+
+
+let length_sort list =
+    let rec length_sorted_insert l x =
+        match l with
+        | [] -> [x]
+        | hd::tl ->
+                if List.length hd > List.length x
+                then x::hd::tl
+                else hd::(length_sorted_insert tl x)
+    in List.fold_left length_sorted_insert [] list;;
+
+
+length_sort [["a"; "b"; "c"]; ["d"; "e"]; ["f"; "g"; "h"]; ["d"; "e"];
+             ["i"; "j"; "k"; "l"]; ["m"; "n"]; ["o"]];;
+
+
+let frequency_sort list =
+    let rec insert l llen = function
+        | [] -> [1,llen,[l]]
+        | (c,x,lol) as hd :: tl ->
+                if llen < x
+                then (1,llen,[l])::hd::tl
+                else
+                    if llen = x
+                    then (c+1,x,(l::lol))::tl
+                    else hd::(insert l llen tl)
+    in let stage1 = List.fold_left (fun acc x -> insert x (List.length x) acc) [] list
+    in let rec insert_sorted lc lx l = function
+        | [] -> [lc,lx,l]
+        | (c,_,_) as hd :: tl ->
+                if c < lc
+                then (lc,lx,l)::hd::tl
+                else hd::(insert_sorted lc lx l tl)
+    in let stage2 = List.fold_left (fun acc (lc,lx,l) -> insert_sorted lc lx l acc) [] stage1
+    in let rec only_lists acc = function
+        | [] -> acc
+        | (_,_,l) :: tl -> only_lists (List.rev l@acc) tl
+    in only_lists [] stage2;;
+
+
+frequency_sort [["a"; "b"; "c"]; ["d"; "e"]; ["f"; "g"; "h"]; ["d"; "f"];
+                ["i"; "j"; "k"; "l"]; ["m"; "n"]; ["o"]];;
+
+
+let lazy_and p1 p2 = match p1,p2 with
+    | lazy false, _ -> false
+    | lazy true, lazy b -> b
+
+
+let is_prime n =
+    let rec divides i =
+        if i = n then true else if n mod i = 0 then false else divides (i+1)
+    in lazy_and (lazy (n <> 1)) (lazy (divides 2));;
+
+
+not (is_prime 1);;
+
+
+is_prime 7;;
+
+
+not (is_prime 12);;
+
+
+let rec gcd n m = let i = n mod m in if i = 0 then m else gcd m i;;
+
+
+gcd 13 27;;
+
+
+gcd 20536 7826;;
+
+
+let coprime n m = gcd n m = 1;;
+
+
+coprime 13 27;;
+
+
+not (coprime 20536 7826);;
+
+
+
+let factors n =
+    let rec count_dividing a b acc = if a mod b = 0 then count_dividing (a/b) b (acc+1) else acc,a
+    in let rec gen_factorlist accl i currn =
+        if i > n || currn = 1
+        then accl
+        else
+            if is_prime i
+            then
+                let c,newn = count_dividing currn i 0 in
+                if c <> 0
+                then gen_factorlist ((i,c)::accl) (i+1) newn
+                else gen_factorlist accl (i+1) currn
+            else gen_factorlist accl (i+1) currn
+        in List.rev (gen_factorlist [] 2 n);;
+
+
+let all_primes a b = [a;b]
+
+
+let goldbach n =
+    let prime_list = List.rev (all_primes 2 n) in
+    let rec checkfori i = function
+        | [] -> false,(0,0)
+        | hd :: tl -> if i + hd = n then true,(i,hd) else checkfori i tl in
+    let rec aux = function
+        | [] -> 0,0
+        | hd :: tl -> begin
+            match checkfori hd prime_list with
+            | false,_ -> aux tl
+            | true,s -> s
+            end
+    in
+    aux prime_list;;
+

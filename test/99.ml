@@ -558,6 +558,29 @@ coprime 13 27;;
 not (coprime 20536 7826);;
 
 
+let phi n =
+    let rec aux acc i =
+        if i = n
+        then acc
+        else
+            let newacc = if coprime i n then acc + 1 else acc
+            in aux newacc (i+1)
+    in aux 0 1;;
+
+
+phi 10;;
+
+
+let factors n =
+    let rec aux acc currn i =
+        if currn < i then acc else
+            if currn mod i = 0 then aux (i::acc) (currn/i) i
+            else aux acc currn (i+1)
+    in List.rev (aux [] n 2);;
+
+
+factors 315;;
+
 
 let factors n =
     let rec count_dividing a b acc = if a mod b = 0 then count_dividing (a/b) b (acc+1) else acc,a
@@ -575,7 +598,41 @@ let factors n =
         in List.rev (gen_factorlist [] 2 n);;
 
 
-let all_primes a b = [a;b]
+factors 315;;
+
+
+let rec pow n m = if m < 1 then 1 else n * pow n (m-1);;
+
+
+let phi_improved n =
+    let rec aux acc = function
+        | [] -> acc
+        | (p, m) :: tl -> aux (acc * (p - 1) * pow p (m - 1)) tl
+    in aux 1 (factors n);;
+
+
+phi_improved 10;;
+
+
+let timeit f x =
+    let t0 = Unix.gettimeofday ()
+    in ignore (f x);
+    let t1 = Unix.gettimeofday ()
+    in t0 -. t1;;
+
+
+let all_primes n m =
+    let rec aux acc i =
+        if n <= i
+        then
+            if is_prime i
+            then aux (i::acc) (i-1)
+            else aux acc (i-1)
+        else acc
+    in aux [] m;;
+
+
+List.length (all_primes 2 7920);;
 
 
 let goldbach n =
@@ -593,3 +650,13 @@ let goldbach n =
     in
     aux prime_list;;
 
+
+goldbach 28;;
+
+
+let goldbach_list n m =
+    let rec aux acc i =
+        if m < i then acc
+        else aux ((i,goldbach i)::acc) (i+2)
+    in let n_even = if n mod 2 = 0 then n else n + 1
+    in aux [] n_even;;

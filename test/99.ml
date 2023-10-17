@@ -636,16 +636,17 @@ List.length (all_primes 2 7920);;
 
 
 let goldbach n =
+    let exception NO in
     let prime_list = List.rev (all_primes 2 n) in
     let rec checkfori i = function
-        | [] -> false,(0,0)
-        | hd :: tl -> if i + hd = n then true,(i,hd) else checkfori i tl in
+        | [] -> raise NO
+        | hd :: tl -> if i + hd = n then hd,i else checkfori i tl in
     let rec aux = function
-        | [] -> 0,0
+        | [] -> raise NO
         | hd :: tl -> begin
             match checkfori hd prime_list with
-            | false,_ -> aux tl
-            | true,s -> s
+            | exception NO -> aux tl
+            | s -> s
             end
     in
     aux prime_list;;

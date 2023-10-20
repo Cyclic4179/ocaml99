@@ -522,13 +522,34 @@ frequency_sort [["a"; "b"; "c"]; ["d"; "e"]; ["f"; "g"; "h"]; ["d"; "f"];
 
 let lazy_and p1 p2 = match p1,p2 with
     | lazy false, _ -> false
-    | lazy true, lazy b -> b
+    | lazy true, lazy b -> b;;
 
 
 let is_prime n =
     let rec divides i =
         if i = n then true else if n mod i = 0 then false else divides (i+1)
     in lazy_and (lazy (n <> 1)) (lazy (divides 2));;
+
+
+(** tried sieve, but inefficient memory usage (requires O(n) space)*)
+let is_prime1 n =
+    let sieve = Array.make (n-2) true in
+    let last_index = n-3 in
+    let rec filter_val i = (
+        if i <= last_index
+        then (sieve.(i-2) <- false; filter_val (2*i))
+        else ()) in
+    let rec divides i =
+        if i = n then true
+        else
+            if sieve.(i-2)
+            then begin
+                if n mod i = 0
+                then false
+                else (filter_val i; divides (i+1))
+            end
+            else divides (i+1) in
+    lazy_and (lazy (n <> 1)) (lazy (divides 2));;
 
 
 not (is_prime 1);;
@@ -618,7 +639,7 @@ let timeit f x =
     let t0 = Unix.gettimeofday ()
     in ignore (f x);
     let t1 = Unix.gettimeofday ()
-    in t0 -. t1;;
+    in t1 -. t0;;
 
 
 let all_primes n m =
@@ -695,3 +716,95 @@ let table2 var_a var_b exp =
 
 
 table2 "a" "b" (And (Var "a", Or (Var "a", Var "b")));;
+
+
+let table vars expr =
+    let rec assoc x = function
+        | [] -> raise (Invalid_argument "unknown var in expression")
+        | (a,b) :: tl -> if x = a then b else assoc x tl
+    in let rec aux vars_vals = function
+        | Var x -> assoc x vars_vals
+        | Not e -> not (aux vars_vals e)
+        | And (e1,e2) -> lazy_and (lazy (aux vars_vals e1)) (lazy (aux vars_vals e2))
+        | Or (e1,e2) -> lazy_or (lazy (aux vars_vals e1)) (lazy (aux vars_vals e2))
+    in let vars_perms = begin
+        let rec gen acc = function
+            | [] -> [List.rev acc]
+            | hd :: tl -> gen ((hd,true)::acc) tl @ gen ((hd,false)::acc) tl
+        in gen [] vars
+    end
+    in List.map (fun vars_vals -> vars_vals, (aux vars_vals expr)) vars_perms;;
+
+
+table ["a"; "b"] (And (Var "a", Or (Var "a", Var "b")));;
+
+
+let gray n =
+    let rec aux s l even1 =
+        if l = n then [s] else let nl = l + 1 in begin
+            if even1
+            then aux (s ^ "0") nl true @ aux (s ^ "1") nl false
+            else aux (s ^ "1") nl true @ aux (s ^ "0") nl false
+        end
+    in aux "" 0 true;;
+
+
+type tree = Leaf of (string * int) | Node of (tree * tree * int);;
+
+
+let huffman fs =
+    let sorted_fs =
+        let rec sorted_insert x xfreq = function
+            | [] -> [x]
+            | (_,freq) as hd :: tl ->
+                    if xfreq < freq
+                    then x::hd::tl
+                    else hd::(sorted_insert x xfreq tl) in
+        let rec sort_by_freq acc = function
+            | [] -> acc
+            | (_,freq) as hd :: tl -> sort_by_freq (sorted_insert hd freq acc) tl in
+        List.map
+        (fun (s,freq) -> Leaf (s,freq))
+        (sort_by_freq [] fs) in
+    let huffman_tree =
+        let rec sorted_insert x xfreq = function
+            | [] -> [x]
+            | (Leaf (_,freq) | Node (_,_,freq)) as hd :: tl ->
+                    if xfreq < freq
+                    then x::hd::tl
+                    else hd::(sorted_insert x xfreq tl) in
+        let rec put2 = function
+            | [] -> []
+            | (Leaf (_,freq1) | Node (_,_,freq1)) as hd1 :: tl -> begin
+                match tl with
+                | [] -> [hd1]
+                | (Leaf (_,freq2) | Node (_,_,freq2)) as hd2 :: rem ->
+                        let combindedfreq = freq1 + freq2 in
+                        put2 (sorted_insert (Node (hd1, hd2, combindedfreq)) combindedfreq rem)
+            end in
+        List.hd (put2 sorted_fs) in
+    let huffman_code =
+        let rec follow_path acc = function
+            | Leaf (str,freq) -> [(str,acc)]
+            | Node (left,right,_) ->
+                    follow_path (acc ^ "0") left @ follow_path (acc ^ "1") right in
+        follow_path "" huffman_tree in
+    huffman_code;;
+
+
+
+let fs = [("a", 45); ("b", 13); ("c", 12); ("d", 16);
+          ("e", 9); ("f", 5)];;
+
+
+type 'a binary_tree =
+    | Empty
+    | Node of 'a * 'a binary_tree * 'a binary_tree;;
+
+
+let rec cbal_tree n =
+    if n = 0 then Empty
+    else
+        let newn = n-1 in
+        let part2 = newn / 2 in let part1 = newn - part2 in
+        Node ('x', cbal_tree part1, cbal_tree part2);;

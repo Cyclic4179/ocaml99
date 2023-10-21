@@ -802,15 +802,7 @@ type 'a binary_tree =
     | Node of 'a * 'a binary_tree * 'a binary_tree;;
 
 
-let cbal_tree1 n =
-    (*let create_node a b = Node ('x', a, b) in
-    let rec node_from_list_2 e = function
-        | [] -> []
-        | hd :: tl -> create_node e hd :: node_from_list_2 e tl in
-    let rec gen_node_from_lists l1 l2 =
-        match l1 with
-        | [] -> []
-        | hd :: tl -> node_from_list_2 hd l2 @ gen_node_from_lists tl l2 in*)
+let cbal_tree n =
     let gen_node_list_from_lists left right all =
         let add_right_tree acc l =
             List.fold_left (fun a r -> Node ('x',l,r)::a) acc right in
@@ -829,3 +821,32 @@ let cbal_tree1 n =
                 let t2 = construct_tree part2 in
                 gen_node_list_from_lists t1 t2 (gen_node_list_from_lists t2 t1 []) in
     construct_tree n;;
+
+
+let rec is_mirror a b =
+    match a,b with
+    | Empty, Empty -> true
+    | Node (_,la,ra), Node (_,lb,rb) -> lazy_and (lazy (is_mirror la lb)) (lazy (is_mirror ra rb))
+    | _ -> false;;
+
+
+let is_symmetric = function
+    | Empty -> true
+    | Node (_,l,r) -> is_mirror l r;;
+
+
+let construct l =
+    let rec insert x = function
+        | Empty -> Node (x,Empty,Empty)
+        | Node (y,l,r) as n ->
+                if x = y then n
+                else if x < y then Node (y,insert x l,r)
+                else Node (y,l,insert x r) in
+    let rec aux t = function
+        | [] -> t
+        | hd :: tl -> aux (insert hd t) tl in
+    aux Empty l;;
+
+
+let sym_cbal_trees n =
+    List.filter is_symmetric (cbal_tree n);;

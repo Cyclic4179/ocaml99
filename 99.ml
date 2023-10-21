@@ -808,3 +808,26 @@ let rec cbal_tree n =
         let newn = n-1 in
         let part2 = newn / 2 in let part1 = newn - part2 in
         Node ('x', cbal_tree part1, cbal_tree part2);;
+
+
+let cbal_tree1 n =
+    let create_node a b = Node ('x', a, b) in
+    let rec node_from_list_2 e = function
+        | [] -> []
+        | hd :: tl -> create_node e hd :: node_from_list_2 e tl in
+    let rec gen_node_from_lists l1 l2 =
+        match l1 with
+        | [] -> []
+        | hd :: tl -> node_from_list_2 hd l2 @ gen_node_from_lists tl l2 in
+    let rec construct_tree i =
+        if i = 0 then [Empty]
+        else
+            let newn = i-1 in
+            let part2 = newn / 2 in let part1 = newn - part2 in
+            if part1 = part2
+            then
+                gen_node_from_lists (construct_tree part1) (construct_tree part1)
+            else
+                gen_node_from_lists (construct_tree part1) (construct_tree part2) @
+                gen_node_from_lists (construct_tree part2) (construct_tree part1) in
+    construct_tree n;;

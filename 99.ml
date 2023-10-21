@@ -802,23 +802,19 @@ type 'a binary_tree =
     | Node of 'a * 'a binary_tree * 'a binary_tree;;
 
 
-let rec cbal_tree n =
-    if n = 0 then Empty
-    else
-        let newn = n-1 in
-        let part2 = newn / 2 in let part1 = newn - part2 in
-        Node ('x', cbal_tree part1, cbal_tree part2);;
-
-
 let cbal_tree1 n =
-    let create_node a b = Node ('x', a, b) in
+    (*let create_node a b = Node ('x', a, b) in
     let rec node_from_list_2 e = function
         | [] -> []
         | hd :: tl -> create_node e hd :: node_from_list_2 e tl in
     let rec gen_node_from_lists l1 l2 =
         match l1 with
         | [] -> []
-        | hd :: tl -> node_from_list_2 hd l2 @ gen_node_from_lists tl l2 in
+        | hd :: tl -> node_from_list_2 hd l2 @ gen_node_from_lists tl l2 in*)
+    let gen_node_list_from_lists left right all =
+        let add_right_tree acc l =
+            List.fold_left (fun a r -> Node ('x',l,r)::a) acc right in
+        List.fold_left add_right_tree all left in
     let rec construct_tree i =
         if i = 0 then [Empty]
         else
@@ -826,8 +822,10 @@ let cbal_tree1 n =
             let part2 = newn / 2 in let part1 = newn - part2 in
             if part1 = part2
             then
-                gen_node_from_lists (construct_tree part1) (construct_tree part1)
+                let t = construct_tree part1 in
+                gen_node_list_from_lists t t []
             else
-                gen_node_from_lists (construct_tree part1) (construct_tree part2) @
-                gen_node_from_lists (construct_tree part2) (construct_tree part1) in
+                let t1 = construct_tree part1 in
+                let t2 = construct_tree part2 in
+                gen_node_list_from_lists t1 t2 (gen_node_list_from_lists t2 t1 []) in
     construct_tree n;;

@@ -520,15 +520,10 @@ frequency_sort [["a"; "b"; "c"]; ["d"; "e"]; ["f"; "g"; "h"]; ["d"; "f"];
                 ["i"; "j"; "k"; "l"]; ["m"; "n"]; ["o"]];;
 
 
-let lazy_and p1 p2 = match p1,p2 with
-    | lazy false, _ -> false
-    | lazy true, lazy b -> b;;
-
-
 let is_prime n =
     let rec divides i =
         if i = n then true else if n mod i = 0 then false else divides (i+1)
-    in lazy_and (lazy (n <> 1)) (lazy (divides 2));;
+    in (n <> 1) || (divides 2);;
 
 
 (** tried sieve, but inefficient memory usage (requires O(n) space)*)
@@ -549,7 +544,7 @@ let is_prime1 n =
                 else (filter_val i; divides (i+1))
             end
             else divides (i+1) in
-    lazy_and (lazy (n <> 1)) (lazy (divides 2));;
+    (n <> 1) && (divides 2);;
 
 
 not (is_prime 1);;
@@ -694,11 +689,6 @@ type bool_expr =
     | Or of bool_expr * bool_expr;;
 
 
-let lazy_or p1 p2 = match p1,p2 with
-    | lazy true, _ -> true
-    | lazy false, lazy x -> x;;
-
-
 let table2 var_a var_b exp =
     let rec aux val_a val_b = function
         | Var x ->
@@ -706,8 +696,8 @@ let table2 var_a var_b exp =
             else if x = var_b then val_b
             else raise (Invalid_argument "unknown var in expression")
         | Not e -> not (aux val_a val_b e)
-        | And (e1,e2) -> lazy_and (lazy (aux val_a val_b e1)) (lazy (aux val_a val_b e2))
-        | Or (e1,e2) -> lazy_or (lazy (aux val_a val_b e1)) (lazy (aux val_a val_b e2))
+        | And (e1,e2) -> (aux val_a val_b e1) || (aux val_a val_b e2)
+        | Or (e1,e2) -> (aux val_a val_b e1) || (aux val_a val_b e2)
     in begin
         List.map
         (fun (val_a,val_b) -> val_a,val_b,aux val_a val_b exp)
@@ -725,8 +715,8 @@ let table vars expr =
     in let rec aux vars_vals = function
         | Var x -> assoc x vars_vals
         | Not e -> not (aux vars_vals e)
-        | And (e1,e2) -> lazy_and (lazy (aux vars_vals e1)) (lazy (aux vars_vals e2))
-        | Or (e1,e2) -> lazy_or (lazy (aux vars_vals e1)) (lazy (aux vars_vals e2))
+        | And (e1,e2) -> (aux vars_vals e1) && (aux vars_vals e2)
+        | Or (e1,e2) -> (aux vars_vals e1) || (aux vars_vals e2)
     in let vars_perms = begin
         let rec gen acc = function
             | [] -> [List.rev acc]
@@ -826,7 +816,7 @@ let cbal_tree n =
 let rec is_mirror a b =
     match a,b with
     | Empty, Empty -> true
-    | Node (_,la,ra), Node (_,lb,rb) -> lazy_and (lazy (is_mirror la lb)) (lazy (is_mirror ra rb))
+    | Node (_,la,ra), Node (_,lb,rb) -> (is_mirror la lb) && (is_mirror ra rb)
     | _ -> false;;
 
 
@@ -850,3 +840,79 @@ let construct l =
 
 let sym_cbal_trees n =
     List.filter is_symmetric (cbal_tree n);;
+
+
+let hbal_tree n =
+    (*let node_perms l acc r =
+        Node ('x',l,r)::Node ('x',Empty,r)::Node ('x',l,Empty)::acc in*)
+    let add_trees_with left right all =
+        let add_right_tree all l =
+            List.fold_left (fun a r -> Node ('x',l,r)::a) all right in
+        List.fold_left add_right_tree all left in
+    let rec aux i =
+        if i <= 0 then [Empty]
+        else if i = 1 then [Node ('x',Empty,Empty)]
+        else
+            let t1 = aux (i-1) in
+            let t2 = aux (i-2) in
+            add_trees_with t1 t1 (add_trees_with t1 t2 (add_trees_with t2 t1 [])) in
+    aux n;;
+
+
+let max_nodes h = 1 lsl h - 1;;
+
+
+let rec min_nodes h =
+    if h <= 0 then 0 else
+    1 + min_nodes (h-1) + min_nodes (h-2);;
+
+
+let min_nodes1 h =
+    let rec aux acc prev beforeprev i =
+        if i = h then acc
+        else
+            let curr = prev + beforeprev in
+            let newacc = acc + curr in
+            aux newacc curr prev (i+1)
+    in aux 0 0 1 0;;
+
+
+let min_nodes2 n =
+    let n = float_of_int n in
+    0.5 *. ((3./.(sqrt 5.) +. 1.) *. ((1. +. sqrt 5.)/.2.) ** n
+    +. (-.3./.(sqrt 5.) +. 1.) *. ((1. -. sqrt 5.)/.2.) ** n) -. 1.;;
+
+
+let min_height n = int_of_float (ceil (log (float_of_int (n + 1)) /. log 2.));;
+
+
+let max_height n = "??";;
+(* max_height n = max_height ?/2*)
+
+
+(**let hbal_tree_nodes n =
+    let merge_trees left right all =
+        let merge_left all r =
+            List.fold_left (fun a l -> Node ('x',l,r)::a) all left in
+        List.fold_left merge_left all right in
+    let empty = [Empty] in
+    let rec aux i remd =
+        if remd = 0 || i = 0 then [Empty]
+        else
+            let t1 = aux (i-1) (remd-1) in
+            let t2 = aux (i-2) (remd-1) in
+            merge_trees t1 empty (merge_trees empty t1 (merge_trees t2 t2 [])) in
+    aux n*)
+
+
+(**let hbal_tree_nodess n =
+    let merge_trees left right all =
+        let merge_left all r =
+            List.fold_left (fun a l -> Node ('x',l,r)::a) all left in
+        List.fold_left merge_left all right in
+    let rec aux i =
+        if i = 0 then [Empty]
+        else
+            if i mod 2 = 0
+            then
+                let t = 3 + 3.;;*)

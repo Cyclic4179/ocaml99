@@ -114,6 +114,7 @@ let test f g start _end =
             else Some (curr, fapp, gapp)
     in aux start;;
 
+(* lol soooo inefficient *)
 let hbal_tree_nodes n =
     let filter_amount h =
         let f x = amount_nodes x = n
@@ -126,13 +127,36 @@ let hbal_tree_nodes n =
         else
             joinHeights (filter_amount currH @ acc) (currH + 1)
     in joinHeights [] minH;;
-    (*let rec aux remNodes remHeight =
-        if remHeight = 0
-        then [ Empty ]
-        else if n = 1
-        then [ node Empty Empty ]
-        else
-            let normal = aux (n - 1)
-            in let low = aux (n - 2)
-            in joinNodes normal normal (joinNodes normal low (joinNodes low normal []))
-    in aux n;;*)
+
+
+let rec count_leaves = function
+    | Empty -> 0
+    | Node (_, Empty, Empty) -> 1
+    | Node (_, l, r) -> count_leaves l + count_leaves r;;
+
+
+let rec collect_leaves t =
+    let rec aux acc = function
+        | Empty -> acc
+        | Node (_, Empty, Empty) as leaf -> leaf :: acc
+        | Node (_, l, r) -> aux (aux acc l) r
+    in aux [] t;;
+
+
+let internals t =
+    let rec aux acc = function
+        | Empty -> acc
+        | Node (_, l, r) as leaf -> aux (leaf :: aux acc l) r
+    in aux [] t;;
+
+
+let at_level t lv =
+    let rec aux acc currl = function
+        | Empty -> acc
+        | Node (x, l, r) ->
+               if lv = currl
+               then x :: acc
+               else let newl = currl + 1
+               in aux (aux acc newl l) newl r
+    in aux [] 1 t;;
+

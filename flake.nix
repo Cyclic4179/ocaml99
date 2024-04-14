@@ -37,6 +37,7 @@
               ocamlPackages.ocamlformat-rpc-lib
               # Fancy REPL thing
               ocamlPackages.utop
+              legacyPackages.ocaml
             ];
             shellHook = ''
               exec zsh
